@@ -1,15 +1,5 @@
 use super::types::*;
 
-impl Mail {
-    pub fn domain(&self) -> &str {
-        match self {
-            Mail::Gmail => "gmail.com",
-            Mail::Hotmail => "hotmail.com",
-            Mail::Outlook => "outlook.com",
-        }
-    }
-}
-
 pub trait TweeterT {
     fn show_tweets_c(&self);
     fn get_users(&self);

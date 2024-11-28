@@ -36,6 +36,17 @@ impl Email {
     }
 }
 
+
+impl Mail {
+    pub fn domain(&self) -> &str {
+        match self {
+            Mail::Gmail => "gmail.com",
+            Mail::Hotmail => "hotmail.com",
+            Mail::Outlook => "outlook.com",
+        }
+    }
+}
+
 impl Tweet {
     fn new(
         id: u8,
