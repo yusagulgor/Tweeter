@@ -1,0 +1,9 @@
+[package]
+name = "tweeter"
+version = "0.1.0"
+edition = "2021"
+authors = ["Yusa Mervan"]
+description = "New App is Tweeter"
+
+[dependencies]
+rand = "0.8.4"
