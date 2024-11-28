@@ -18,6 +18,16 @@ impl AdminLevel {
     }
 }
 
+impl Mail {
+    pub fn domain(&self) -> &str {
+        match self {
+            Mail::Gmail => "gmail.com",
+            Mail::Hotmail => "hotmail.com",
+            Mail::Outlook => "outlook.com",
+        }
+    }
+}
+
 impl Email {
     pub fn new(mail_type: Mail, address: String) -> Result<Self, String> {
         if address.trim().is_empty() {
@@ -36,16 +46,6 @@ impl Email {
     }
 }
 
-
-impl Mail {
-    pub fn domain(&self) -> &str {
-        match self {
-            Mail::Gmail => "gmail.com",
-            Mail::Hotmail => "hotmail.com",
-            Mail::Outlook => "outlook.com",
-        }
-    }
-}
 
 impl Tweet {
     fn new(
