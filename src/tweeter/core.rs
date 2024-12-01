@@ -2,6 +2,7 @@ use super::{traits::*,types::*,utils::*};
 use std::{collections::{HashMap, HashSet}, fmt::{Display, Formatter}};
 use rand::Rng;
 
+// Basic impls ---------------------------------------
 impl AdminLevel {
     pub fn level_name(&self)->&str{
         match self {
@@ -28,6 +29,27 @@ impl Mail {
     }
 }
 
+impl Status {
+    pub fn stat(&self) -> &str {
+        match self {
+            Status::Oke => "iyi durumda",
+            Status::Editing => "düzenlenmeli",
+            Status::Edited =>"düzenlendi",
+            Status::Not => "silinmeli",
+        }
+    }
+
+    pub fn str_to_stat(value:&str)->Status{
+        match value {
+            "Oke"=> Status::Oke,
+            "Edited"=> Status::Edited,
+            "Editing"=> Status::Editing,
+            "Not"=> Status::Not,
+            _ => Status::Not,
+        }
+    }
+}
+
 impl Email {
     pub fn new(mail_type: Mail, address: String) -> Result<Self, String> {
         if address.trim().is_empty() {
@@ -46,7 +68,9 @@ impl Email {
     }
 }
 
+// Basic impls ---------------------------------------
 
+// Normal impls ---------------------------------------
 impl Tweet {
     fn new(
         id: u8,
@@ -65,7 +89,7 @@ impl Tweet {
         }
 
         if tweet.len() > 220 {
-            return Err("Tweet 30 karakterden uzun olamaz.".to_string());
+            return Err("Tweet 220 karakterden uzun olamaz.".to_string());
         }
 
         Ok(Self {
@@ -77,6 +101,31 @@ impl Tweet {
             status,
         })
     }
+
+    pub fn update_id(&mut self, new_id: u8) {
+        self.id = new_id;
+    }
+
+    pub fn update_author(&mut self, new_author: String) {
+        self.author = new_author;
+    }
+
+    pub fn update_title(&mut self, new_title:String) {
+        self.title = new_title;
+    }
+
+    pub fn update_description(&mut self, new_desc: String) {
+        self.description = new_desc;
+    }
+
+    pub fn update_tweet(&mut self, new_tweet: String) {
+        self.tweet = new_tweet;
+    }
+
+    pub fn update_status(&mut self, new_status:Status) {
+        self.status = new_status;
+    }
+    
 }
 
 impl TweetT for Tweet {
@@ -84,6 +133,7 @@ impl TweetT for Tweet {
     fn full_show(&self){
         println!("id :{}",self.id);
         println!("Author: {}",self.author);
+        println!("Title :{}",self.title);
         println!("description : {}",self.description);
         println!("tweet : {}",self.tweet);
         println!("status : {}",self.status.stat());
@@ -113,14 +163,23 @@ impl Display for User {
 }
 
 impl User {
-    pub fn new(name: String, email_adress: Email, adminlevel: AdminLevel) -> Self {
+    pub fn new(id:u8,name: String, email_adress: Email, adminlevel: AdminLevel) -> Self {
         Self {
+            id,
             name,
             email_adress,
             adminlevel,
             tweets: Vec::new(),
             want_be_mod: false,
         }
+    }
+
+    pub fn full_show(&self){
+        println!("id : {}",self.id);
+        println!("name:{}",self.name);
+        println!("email adress:{}",self.email_adress.mail_address());
+        println!("admin level :{}",self.adminlevel.level_value());
+        println!("want be mod :{}",self.want_be_mod);
     }
 
 }
@@ -135,24 +194,31 @@ impl Tweeter{
         }
     }
 
-    pub fn login_check(&self, user: &User) {
-        if let Some((_, existing_user)) = self.users.iter().find(|(_, u)| u.name == user.name && u.email_adress.mail_address() == user.email_adress.mail_address()) {
-            println!("Giriş onaylandı: Hoş geldiniz, {}!", existing_user.name);
+    pub fn login_check(&self, user: &User) -> String {
+        if let Some((_, existing_user)) = self.users.iter().find(|(_, u)| {
+            u.name == user.name && u.email_adress.mail_address() == user.email_adress.mail_address()
+        }) {
+            format!("Giriş onaylandı: Hoş geldiniz, {}!", existing_user.name)
         } else {
-            println!("Giriş başarısız: Kullanıcı adı veya e-posta hatalı.");
+            "Giriş başarısız: Kullanıcı adı veya e-posta hatalı.".to_string()
         }
     }
     
-    pub fn add_new_tweet(&mut self, tweet: &Tweet) -> &str {
-        // if tweet.status != Status::Oke {
-        //     return "Bu tweet düzenlenmeli.";
-        // }
+    pub fn add_new_tweet(&mut self, tweet: &mut Tweet) -> &str {
+        if tweet.status != Status::Edited && tweet.status != Status::Oke {
+            return "Bu tweet düzenlenmeli.";
+        }
+        tweet.status = Status::Oke;
         self.wants_tweets.retain(|t| t.id != tweet.id);
-        self.tweets.push(tweet.clone()); 
+        self.tweets.push(tweet.clone());
         "Tweet başarıyla eklendi."
-    }
+    }    
     
     pub fn accept_wtweets(&mut self, user: &User, id: u8) -> &str {
+        if self.users.iter().any(|us|us.0 != &user.id){
+            "kullanıcı veritabanında bulunamadı";
+        }
+
         if user.adminlevel != AdminLevel::Possibleator && user.adminlevel != AdminLevel::Moderator {
             return "Bunun için yetkiniz yok.";
         }
@@ -161,21 +227,87 @@ impl Tweeter{
             let mut updated_tweet = tweet_request.clone();
             updated_tweet.status = Status::Oke;
             
-            self.add_new_tweet(&updated_tweet);
+            self.add_new_tweet(&mut updated_tweet);
             "Tweet isteği kabul edildi."
         } else {
-            "O id'ye sahip tweet bulunamadı."
+            " id'ye sahip tweet bulunamadı."
         }
     }
-    
 
+    pub fn edit_tweet(
+        &mut self,
+        user: &User,
+        which: EditableTweetSection,
+        tweet: &mut Tweet,
+    ) -> &str {
+        if !self
+            .users
+            .iter()
+            .any(|(email, _)| email == &user.id)
+        {
+            return "Kullanıcı veritabanında bulunamadı.";
+        }
+    
+        if user.adminlevel != AdminLevel::Regulator && user.adminlevel != AdminLevel::Moderator {
+            return "Bunun için yetkiniz yok.";
+        }
+    
+        match which {
+            EditableTweetSection::Tweet(value) => {
+                if value.len() > 220 {
+                    return "Tweet mesajı 220 karakterden uzun olamaz.";
+                }
+                tweet.update_tweet(value);
+            }
+            EditableTweetSection::Title(value) => {
+                if value.len() > 10 {
+                    return "Tweet başlığı 10 karakterden uzun olamaz.";
+                }
+                tweet.update_title(value);
+            }
+            EditableTweetSection::Description(value) => {
+                if value.len() > 25 {
+                    return "Açıklama 25 karakterden uzun olamaz.";
+                }
+                tweet.update_description(value);
+            }
+            EditableTweetSection::Id(value) => {
+                if self.wants_tweets.iter().any(|t| t.id == value) {
+                    return "Bu ID zaten başka bir tweete ait.";
+                }
+                tweet.update_id(value);
+            }
+            EditableTweetSection::Author(value) => {
+                if value.len() > 50 {
+                    return "Yazar adı 50 karakterden uzun olamaz.";
+                }
+                tweet.update_author(value);
+            }
+            EditableTweetSection::Status(value) => {
+                tweet.update_status(value);
+                println!("Tweet durumu güncellendi: {}", tweet.status.stat());
+            }
+        }
+
+        tweet.update_status(Status::Edited);
+    
+        let index = self.wants_tweets.iter().position(|t| t.id == tweet.id);
+        if let Some(idx) = index {
+            self.wants_tweets[idx] = tweet.clone(); 
+        } else {
+            self.wants_tweets.push(tweet.clone()); 
+        }
+        
+        "Tweet başarıyla düzenlendi."
+    }
+    
     pub fn add_want_tweets(&mut self,tweet:&Tweet)->&str{
         self.wants_tweets.push(tweet.clone());
         return "tweet eklendi";
     }
 
     pub fn add_user(&mut self, user: &User) -> &str {
-        if let Some(existing_user) = self.users.get(&user.email_adress.mail_address()) {
+        if let Some(_existing_user) = self.users.get(&user.id) {
             return "Bu e-posta zaten bir kullanıcı tarafından kullanılıyor.";
         }
 
@@ -185,7 +317,7 @@ impl Tweeter{
             }
         }
 
-        self.users.insert(user.email_adress.mail_address(), user.clone());
+        self.users.insert(user.id, user.clone());
         return "Kullanıcı başarıyla eklendi.";
     }
 
@@ -199,33 +331,94 @@ impl Tweeter{
             selected_tweet.customer_show()
         }
     }
-}
 
+    pub fn update_user_mod(&mut self, user: &mut User, moderator: &User) -> &str {
+        if !user.want_be_mod {
+            return "Kullanıcı böyle bir istekte bulunmamış.";
+        }
+        if moderator.adminlevel != AdminLevel::Moderator {
+            return "Moderatörün kullanıcıya yetki verme yetkisi yok.";
+        }
+        if user.adminlevel == AdminLevel::Moderator {
+            return "Kullanıcının yetkisi zaten moderatör.";
+        }
+        match user.adminlevel {
+            AdminLevel::Customer => {
+                user.adminlevel = AdminLevel::Author;
+                user.want_be_mod = false;
+            }
+            AdminLevel::Author => {
+                user.adminlevel = AdminLevel::Regulator;
+                user.want_be_mod = false;
+            }
+            AdminLevel::Regulator => {
+                user.adminlevel = AdminLevel::Possibleator;
+                user.want_be_mod = false;
+            }
+            AdminLevel::Possibleator => {
+                user.adminlevel = AdminLevel::Moderator;
+                user.want_be_mod = false;
+            }
+            _ => return "Kullanıcıya yetki verilemedi.",
+        }
+        if let Some(user_entry) = self.users.get_mut(&user.id) {
+            *user_entry = user.clone();
+        }
+    
+        "Kullanıcının leveli arttırıldı."
+    }
+    
+
+    
+}
 
 impl UserT for User {
     fn read_all_your_tweet(&self, t: &Tweeter) {
-        let user_tweets_set: HashSet<_> = self.tweets.iter().collect();
-        let tweeter_tweets_set: HashSet<_> = t.tweets.iter().collect();
-        let intersection: Vec<_> = user_tweets_set
-            .intersection(&tweeter_tweets_set)
+        let main_section_tweets: Vec<_> = t
+            .tweets
+            .iter()
+            .filter(|tweet| tweet.author == self.name ) 
             .collect();
 
-        if intersection.is_empty() {
-            println!("\nHiçbir tweetiniz Tweeter'da bulunmuyor.");
+        let non_main_section_tweets: Vec<_> = t
+            .wants_tweets
+            .iter()
+            .filter(|tweet| tweet.author == self.name ) 
+            .collect();
+
+        if main_section_tweets.is_empty() && non_main_section_tweets.is_empty() {
+            println!("\nHiçbir tweetiniz bulunmuyor.");
+            return;
+        }
+
+        println!("\nAna bölümde bulunan tweetleriniz:");
+        if main_section_tweets.is_empty() {
+            println!("Hiçbir tweet ana bölümde bulunmuyor.");
         } else {
-            println!("\nTweeter'da bulunan tweetleriniz:");
-            for tweet in intersection {
+            for tweet in main_section_tweets {
+                tweet.customer_show();
+            }
+        }
+
+        println!("-------------------");
+
+        println!("\nAna bölümde bulunmayan tweetleriniz:");
+        if non_main_section_tweets.is_empty() {
+            println!("Hiçbir tweet ana bölümde bulunmuyor.");
+        } else {
+            for tweet in non_main_section_tweets {
                 tweet.customer_show();
             }
         }
     }
+    
 
     fn write_tweet(&mut self, t: &mut Tweeter,title:String,description:String,tweet_message:String) -> String {
         if self.adminlevel.level_value() < 1 {
             return "Levelin tweet atmaya yetmiyor. Tweet atmak istiyorsan başvur.".to_string();
         }
 
-        if title.len() < 0 || description.len() <0 || tweet_message.len() <4 {
+        if title.len() <= 0 || description.len() <= 0 || tweet_message.len() <4 {
             return "lütfen gerekli kısımları boş bırakmayın. Tweet mesajınız en az 4 karakter olmalı .".to_string();
         }
 
@@ -248,6 +441,19 @@ impl UserT for User {
 }
 
 impl TweeterT for Tweeter{
+    fn get_xid_wants_tweet(arr:&mut Vec<Tweet>, id: u8) -> Option<&mut Tweet> {
+        for i in arr{
+            if i.id == id {
+                return Some(i);
+            }
+        }None
+    }
+
+    fn get_xid_user(users: &mut HashMap<u8, User>, id: u8) -> Option<&mut User> {
+        users.get_mut(&id) 
+    }
+    
+
     fn show_tweets_c(&self) {
         if self.tweets.len() !=0{
             for tweet in &self.tweets{
@@ -298,5 +504,17 @@ impl TweeterT for Tweeter{
             println!("{}", user);
         }
     }
+
+    fn want_mod_users(&self) {
+        let userss: Vec<_> = self.users.iter().filter(|user| user.1.want_be_mod).collect();
+        if userss.is_empty() {
+            println!("Hiç mod isteyen yok.");
+        } else {
+            for user in &userss {
+                user.1.full_show();
+            }
+        }
+    }
+    
 }
 

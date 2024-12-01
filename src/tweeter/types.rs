@@ -1,28 +1,42 @@
 use std::collections::HashMap;
 
-#[derive(Debug,Clone)]
-enum Bin {
-    Zero,
-    One
-}
+// #[derive(Debug,Clone)]
+// enum Bin {
+//     Zero,
+//     One
+// }
 
-impl Bin {
-    fn value(&self)->u8{
-        match self {
-            Bin::Zero =>0,
-            Bin::One =>1,
-        }
-    }
-}
+// impl Bin {
+//     fn value(&self)->u8{
+//         match self {
+//             Bin::Zero =>0,
+//             Bin::One =>1,
+//         }
+//     }
+// }
+
+// pub enum a{
+//     Description(String),
+//     Title(String),
+//     Tweet(String),
+//     Id(u8),
+//     Author(String),
+//     Status(Status)
+// }
+
+// let value = a::Id(8);
+
 
 
 #[derive(Debug,Clone,PartialEq)]
 pub enum AdminLevel {
-    Regulator =2, // title and tweet edit
-    Author = 1, // tweet atabilen bir kullanıcı
-    Possibleator= 3, // tweetleri okeyleyen 
-    Moderator = 4, // herşeyi yöneten
+    
     Customer = 0, // kullanıcı
+    Author = 1, // tweet atabilen bir kullanıcı
+    Possibleator= 2, // tweetleri okeyleyen 
+    Regulator =3, // title and tweet edit
+    Moderator = 4, // herşeyi yöneten
+
 }
 
 
@@ -49,17 +63,18 @@ pub struct Email {
 pub enum Status{
     Oke,
     Editing,
+    Edited,
     Not
 }
 
-impl Status {
-    pub fn stat(&self) -> &str {
-        match self {
-            Status::Oke => "iyi durumda",
-            Status::Editing => "düzenlenmeli",
-            Status::Not => "silinmeli",
-        }
-    }
+#[derive(Debug,Clone,PartialEq)]
+pub enum EditableTweetSection{
+    Description(String),
+    Title(String),
+    Tweet(String),
+    Id(u8),
+    Author(String),
+    Status(Status)
 }
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
@@ -72,8 +87,9 @@ pub struct Tweet {
     pub(crate) status: Status,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct User{
+    pub(crate) id:u8,
     pub(crate) name: String,
     pub(crate) email_adress:Email,
     pub(crate) adminlevel:AdminLevel,
@@ -81,10 +97,10 @@ pub struct User{
     pub(crate) want_be_mod: bool,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct Tweeter{
     pub(crate) tweets:Vec<Tweet>,
-    pub(crate) users: HashMap<String, User>,
+    pub(crate) users: HashMap<u8, User>,
     pub(crate) wants_tweets:Vec<Tweet>,
     pub(crate) wants_mod:Vec<User> // tüm yetkiler farketmeksizin
 }

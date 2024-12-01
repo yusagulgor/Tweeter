@@ -1,5 +1,5 @@
 
-use super::{types::*,utils::*,traits::*,dependencies::*};
+use super::{core::*,types::*,utils::*,traits::*,dependencies::*};
 
 fn get_user_choice() -> Option<u8> {
     write_start_section();
@@ -13,7 +13,6 @@ fn get_user_choice() -> Option<u8> {
         }
     }
 }
-
 
 //  ? _______FUNCTIONS_______
 
@@ -31,6 +30,7 @@ fn send_tweet(t: &mut Tweeter,user: &mut User){
 
 fn tweet_requests(t: &mut Tweeter, user: &mut User) {
     loop {
+        println!("Tweet kabul etme işlemine hoşgeldiniz.");
         println!("İşte gelen tweet istekleri:");
         t.show_want_tweets();
         println!("Seçmek istediğin tweetin ID'sini yaz. Eğer çıkış yapmak istiyorsan 0 yaz.");
@@ -55,6 +55,128 @@ fn tweet_requests(t: &mut Tweeter, user: &mut User) {
             Err(_) => {
                 println!("Hatalı giriş yaptınız. Lütfen geçerli bir ID girin!");
             }
+        }
+    }
+}
+
+fn edit_tweet(t: &mut Tweeter, user: &mut User) {
+    loop {
+        println!("\nTweet düzenleme işlemine hoş geldiniz.");
+        println!("İşte istekte bulunan tweetler:");
+        t.show_want_tweets();
+        if t.wants_tweets.len() == 0{
+            break;
+        }
+        println!("Seçmek istediğiniz tweetin ID'sini yazın. Eğer çıkış yapmak istiyorsanız 0 yazın.");
+
+        let id_input = input("Seçilen tweetin ID'si: ");
+        if id_input.trim() == "0" {
+            println!("İşlemden çıkılıyor...");
+            break;
+        }
+
+        match id_input.trim().parse::<u8>() {
+            Ok(valid_id) => {
+                let mut arr = t.wants_tweets.clone();
+                if let Some(selected_tweet) = Tweeter::get_xid_wants_tweet(&mut arr,valid_id) {
+                    loop {
+                        println!("İşte değiştirebileceğiniz kısımlar:");
+                        println!("1. Title");
+                        println!("2. Description");
+                        println!("3. Tweet");
+                        if user.adminlevel == AdminLevel::Moderator {
+                            println!("4. ID");
+                            println!("5. Status");
+                        }
+                        println!("0. Çıkış");
+
+                        let choice = input("Seçiminiz: ");
+                        match choice.trim().parse::<u8>().unwrap_or(255) {
+                            0 => {
+                                println!("Bu tweet üzerindeki işlemlerden çıkılıyor...");
+                                break;
+                            }
+                            1 => {
+                                let val = input("Yeni Title değerini girin: ");
+                                let end =t.edit_tweet(user, EditableTweetSection::Title(val), selected_tweet);
+                                println!("{}",end);selected_tweet.full_show();
+                            }
+                            2 => {
+                                let val = input("Yeni Description değerini girin: ");
+                                let end =t.edit_tweet(user, EditableTweetSection::Description(val), selected_tweet);
+                                println!("{}",end);selected_tweet.full_show();
+                            }
+                            3 => {
+                                let val = input("Yeni Tweet değerini girin: ");
+                                let end =t.edit_tweet(user, EditableTweetSection::Tweet(val), selected_tweet);
+                                println!("{}",end);selected_tweet.full_show();
+                            }
+                            4 => {
+                                if user.adminlevel == AdminLevel::Moderator {
+                                    let val = input("Yeni ID değerini girin: ");
+                                    if let Ok(new_id) = val.parse::<u8>() {
+                                    let end =t.edit_tweet(user, EditableTweetSection::Id(new_id), selected_tweet);
+                                    println!("{}",end);selected_tweet.full_show();
+                                    } else {
+                                        println!("Geçersiz ID formatı. Lütfen sayısal bir değer girin.");
+                                    }
+                                } else {
+                                    println!("Bu işlem için yetkiniz yok.");
+                                }
+                            }
+                            5 => {
+                                if user.adminlevel == AdminLevel::Moderator {
+                                    let val = input("Yeni Status değerini girin (Oke, Editing, Edited, Not): ");
+                                    let status = Status::str_to_stat(&val);
+                                    let end =t.edit_tweet(user, EditableTweetSection::Status(status), selected_tweet);
+                                    println!("{}",end);selected_tweet.full_show();
+                                } else {
+                                    println!("Bu işlem için yetkiniz yok.");
+                                }
+                            }
+                            _ => {
+                                println!("Hatalı seçim yaptınız. Lütfen geçerli bir seçenek girin!");
+                            }
+                        }
+                    }
+                }else{
+                    println!("{} değere sahip id bulunamadı .",valid_id);
+                }
+            }
+            Err(_) => {
+                println!("Hatalı giriş yaptınız. Lütfen geçerli bir ID girin!");
+            }
+        }
+    }
+}
+
+fn update_mod(t: &mut Tweeter,user: &mut User){
+    loop{
+        println!("\nİşte gelen mod istekleri");
+        let userss: Vec<_> = t.users.iter().filter(|user| user.1.want_be_mod).collect();
+        if userss.is_empty(){
+            println!("Hiç mod isteyen yok.");
+        }
+        t.want_mod_users();
+
+        let choice = input("level arttırmak istediğin kullanıcı id si(çıkmak için 0 girin):");
+        if choice.trim() == "0" {
+            println!("İşlemden çıkılıyor...");
+            break;
+        }
+
+        match choice.trim().parse::<u8>() {
+            Ok(valid_id) => {
+                let mut arr = t.users.clone();
+                if let Some(selected_user) = Tweeter::get_xid_user(&mut arr, valid_id){
+                    let ans = t.update_user_mod(selected_user, &user);
+                    println!("sonuç : {}",ans);
+                    break;
+                }println!("{} değere sahip id bulunamadı .",valid_id);
+            },
+            Err(_) => {
+                println!("Hatalı giriş yaptınız. Lütfen geçerli bir ID girin!");
+            },
         }
     }
 }
@@ -92,26 +214,57 @@ fn process_choice(choice: u8, t: &mut Tweeter, user: &mut User) -> bool {
         5 => {
             if user.adminlevel.level_value() > 0 {
                 send_tweet(t, user);
-            }else if user.adminlevel.level_value() == 0{
-                println!("Author olmak için başvuruldu.");
+            } else if user.adminlevel.level_value() == 0 {
+                user.want_be_mod = true;
+                if let Some(existing_user) = t.users.get_mut(&user.id) {
+                    existing_user.want_be_mod = true;
+                }
+                if user.want_be_mod{
+                    println!("Author olmak için başvuruldu.");
+                }else {
+                    println!("başvurulamadı.");
+                }
             } else {
                 println!("Author olmak için başvurmalısın.");
             }
             false
         }
-        6 if user.adminlevel.level_value() >= 2 => {
-            println!("\nTweet düzenleme:");
-            // t.edit_tweets();
+        6 => {
+            if user.adminlevel == AdminLevel::Regulator||user.adminlevel == AdminLevel::Moderator {
+                println!("\nTweet düzenleme:");
+                edit_tweet(t, user);
+            } else if user.adminlevel == AdminLevel::Author {
+                user.want_be_mod = true;
+                if let Some(existing_user) = t.users.get_mut(&user.id) {
+                    existing_user.want_be_mod = true;
+                }
+                println!("Regulator olmak için başvuruldu.");
+            } else if user.adminlevel == AdminLevel::Possibleator {
+                tweet_requests(t, user);
+            }
             false
         }
-        7 if user.adminlevel.level_value() >= 3 => {
-            println!("\nGelen tweet isteklerini yönet:");
-            tweet_requests(t, user);
+        7 => {
+            if user.adminlevel == AdminLevel::Regulator {
+                user.want_be_mod = true;
+                if let Some(existing_user) = t.users.get_mut(&user.id) {
+                    existing_user.want_be_mod = true;
+                }
+                println!("\nPossibleator olmak için başvuruldu");
+            } else if user.adminlevel.level_value() == 4 {
+                tweet_requests(t, user);
+            }else if user.adminlevel == AdminLevel::Possibleator{
+                user.want_be_mod = true;
+                if let Some(existing_user) = t.users.get_mut(&user.id) {
+                    existing_user.want_be_mod = true;
+                }
+                println!("\nModerator olmak için başvuruldu");
+            }
             false
         }
         8 if user.adminlevel.level_value() >= 4 => {
             println!("\nGelen mod isteklerini yönet:");
-            // t.handle_mod_requests();
+            update_mod(t, user);
             false
         }
         9 if user.adminlevel.level_value() >= 4 => {
@@ -131,6 +284,7 @@ fn process_choice(choice: u8, t: &mut Tweeter, user: &mut User) -> bool {
     }
 }
 
+
 fn main_widget(t: &mut Tweeter, user: &mut User) {
     let menu = match user.adminlevel {
         AdminLevel::Customer => vec!["5. Author olmak için başvur."],
@@ -141,12 +295,12 @@ fn main_widget(t: &mut Tweeter, user: &mut User) {
         AdminLevel::Regulator => vec![
             "5. Yeni tweet at (NOT: istekler kabul edildikten sonra görüntülenebilir).",
             "6. Tweetleri düzenle.",
-            "7. Moderator olmak için başvur.",
+            "7. Possibleator olmak için başvur.",
         ],
         AdminLevel::Possibleator => vec![
             "5. Yeni tweet at (NOT: istekler kabul edildikten sonra görüntülenebilir).",
             "6. Gelen tweet isteklerine izin ver.",
-            "7. Regulator olmak için başvur.",
+            "7. Moderator olmak için başvur.",
         ],
         AdminLevel::Moderator => vec![
             "5. Tweet at.",
@@ -193,7 +347,6 @@ fn sin(t: &mut Tweeter) {
     if nwt(&name) != "name is ok" {
         cep("İsmin geçerli değil");
         goto_widget(t);
-        return;
     }
 
     let mail = input("What is your email address (Not: with @ and domain. Ex: example@example.com):");
@@ -218,7 +371,6 @@ fn sin(t: &mut Tweeter) {
         println!("Bu bilgilerle kayıtlı kişi bulunamadı\n");
     }
 }
-
 
 // ! SUP
 
@@ -253,9 +405,9 @@ pub fn sup(t: &mut Tweeter) {
             return;
         }
     };
-
+    
     if name == ADMIN_NAME && mail == ADMIN_MAIL {
-        let new_admin = User::new(name.trim().to_string(), analyzed_mail, AdminLevel::Moderator);
+        let new_admin = User::new((t.users.len()+1).try_into().unwrap(),name.trim().to_string(), analyzed_mail, AdminLevel::Moderator);
 
         let cek = t.add_user(&new_admin);
         if cek == "Kullanıcı başarıyla eklendi." {
@@ -265,7 +417,7 @@ pub fn sup(t: &mut Tweeter) {
             println!("HATA: Admin eklenemedi. Sebep: {}", cek);
         }
     } else {
-        let new_user = User::new(name.trim().to_string(), analyzed_mail, AdminLevel::Customer);
+        let new_user = User::new((t.users.len()+1).try_into().unwrap(),name.trim().to_string(), analyzed_mail, AdminLevel::Customer);
 
         let cek = t.add_user(&new_user);
         if cek == "Kullanıcı başarıyla eklendi." {
@@ -277,15 +429,11 @@ pub fn sup(t: &mut Tweeter) {
     }
 }
 
-
 fn goto_widget(t: &mut Tweeter) {
     loop {
         if let Some(choice) = get_user_choice() {
+            if choice == 0{println!("Çıkış yapılıyor. Tekrar görüşmek üzere. :D Main.");break;}
             match choice {
-                0 => {
-                    println!("Çıkış yapılıyor. Tekrar görüşmek üzere. :D");
-                    break; 
-                }
                 1 => sin(t),
                 2 => sup(t), 
                 _ => println!("Geçersiz seçim. Lütfen tekrar deneyin."), 
