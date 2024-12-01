@@ -1,5 +1,5 @@
 use super::{traits::*,types::*,utils::*};
-use std::{collections::{HashMap, HashSet}, fmt::{Display, Formatter}};
+use std::{collections::HashMap, fmt::{Display, Formatter}};
 use rand::Rng;
 
 // Basic impls ---------------------------------------
@@ -194,15 +194,15 @@ impl Tweeter{
         }
     }
 
-    pub fn login_check(&self, user: &User) -> String {
-        if let Some((_, existing_user)) = self.users.iter().find(|(_, u)| {
-            u.name == user.name && u.email_adress.mail_address() == user.email_adress.mail_address()
-        }) {
-            format!("Giriş onaylandı: Hoş geldiniz, {}!", existing_user.name)
-        } else {
-            "Giriş başarısız: Kullanıcı adı veya e-posta hatalı.".to_string()
-        }
-    }
+    // pub fn login_check(&self, user: &User) -> String {
+    //     if let Some((_, existing_user)) = self.users.iter().find(|(_, u)| {
+    //         u.name == user.name && u.email_adress.mail_address() == user.email_adress.mail_address()
+    //     }) {
+    //         format!("Giriş onaylandı: Hoş geldiniz, {}!", existing_user.name)
+    //     } else {
+    //         "Giriş başarısız: Kullanıcı adı veya e-posta hatalı.".to_string()
+    //     }
+    // }
     
     pub fn add_new_tweet(&mut self, tweet: &mut Tweet) -> &str {
         if tweet.status != Status::Edited && tweet.status != Status::Oke {

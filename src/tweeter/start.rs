@@ -327,7 +327,7 @@ fn main_widget(t: &mut Tweeter, user: &mut User) {
         println!("İşte yapabileceğiniz seçenekler:");
         write_main_section();
 
-        for (i, option) in menu.iter().enumerate() {
+        for (_i, option) in menu.iter().enumerate() {
             println!("{}", option);
         }
 
@@ -362,7 +362,7 @@ fn sin(t: &mut Tweeter) {
 
     let mut twe = t.clone();
 
-    if let Some((user_email, mut user)) = twe.users.iter_mut().find(|(user_email, user)| {
+    if let Some((_user_email, mut user)) = twe.users.iter_mut().find(|(_user_email, user)| {
         user.name == name.trim() && user.email_adress == analyzed_mail
     }) {
         println!("Kullanıcı başarıyla giriş yaptı\n");
